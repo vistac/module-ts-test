@@ -1,0 +1,10 @@
+{
+  "html": {
+    "snippets": {
+      "a:routerlink": "a[routerLink='']",
+      "fa:icon": "<fa-icon [icon]=\"\"></fa-icon>",
+      "fa:stack": "fa-stack>fa-icon[[icon]=\"\"]+fa-icon[[icon]=\"\"]",
+      "fa:layers": "fa-layers[[fixedWidth]=\"true\"]"
+    }
+  }
+}
