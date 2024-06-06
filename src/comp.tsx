@@ -1,8 +1,8 @@
-import React from "react";
+import dotTorrent from 'dot-torrent';
+import fs from 'fs';
 import { render, Text } from 'ink';
 import meow from 'meow';
-import { fileURLToPath } from "url";
-import { basename } from "path";
+import { fileURLToPath } from 'url';
 const cli = meow(
 	`
 		Usage
@@ -36,7 +36,8 @@ const Counter = () => (
 	</>
 );
 
-// const __filename = fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
 console.log(cli.flags);
-
+const infoHash = dotTorrent.parse(fs.readFileSync('aa.torrent')).infoHash;
+console.log(infoHash);
 render(<Counter />);
