@@ -118,7 +118,7 @@ export const listFilesRecursive = (dirName: string): string[] => {
 import JSON5 from 'json5';
 export const getConfig = async (filename: string, defaultConfig: any = {}) => {
 	if (await existsSync(filename)) {
-		return JSON5.parse(readFileSync(filename).toString());
+		return { ...defaultConfig, ...JSON5.parse(readFileSync(filename).toString()) };
 	} else {
 		return defaultConfig;
 	}
