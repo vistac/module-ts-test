@@ -1,6 +1,8 @@
 import React from "react";
 import { render, Text } from 'ink';
 import meow from 'meow';
+import { fileURLToPath } from "url";
+import { basename } from "path";
 const cli = meow(
 	`
 		Usage
@@ -19,7 +21,6 @@ const cli = meow(
 			dryrun: {
 				type: 'boolean',
 				shortFlag: 'd',
-				default: false
 			},
 			showleft: {
 				type: 'boolean',
@@ -35,6 +36,7 @@ const Counter = () => (
 	</>
 );
 
+// const __filename = fileURLToPath(import.meta.url);
 console.log(cli.flags);
 
 render(<Counter />);
