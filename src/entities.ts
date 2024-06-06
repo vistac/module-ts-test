@@ -1,5 +1,22 @@
 import 'reflect-metadata';
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
+type SukebeiItem = {
+	title: string;
+	link: string;
+	pubDate: string;
+	content: string;
+	contentSnippet: string;
+	guid: string;
+	isoDate: string;
+};
+type SukebeiFeed = {
+	items: SukebeiItem[];
+	feedUrl: string;
+	paginationLinks: { self: string; };
+	title: string;
+	description: string;
+	link: string;
+};
 
 @Entity('feeds')
 export class Feed {
