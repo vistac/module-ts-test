@@ -1,7 +1,7 @@
 import { Options } from "getopts";
 import moment from "moment-timezone";
 import path from "path";
-import fs, { lstatSync, readdirSync } from 'fs';
+import fs, { existsSync, lstatSync, readFileSync, readdirSync } from 'fs';
 import os from 'os';
 
 export const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -114,4 +114,13 @@ export const listFilesRecursive = (dirName: string): string[] => {
 		}
 	}
 	return result;
+};
+
+import JSON5 from 'json5';
+export const getConfig = async (filename: string, defaultConfig: any = {}) => {
+	if (await existsSync(filename)) {
+		return JSON5.parse(readFileSync(filename).toString());
+	} else {
+		return defaultConfig;
+	}
 };
