@@ -1,8 +1,7 @@
-import { Options } from "getopts";
-import moment from "moment-timezone";
-import path from "path";
 import fs, { existsSync, lstatSync, readFileSync, readdirSync } from 'fs';
+import moment from "moment-timezone";
 import os from 'os';
+import path from "path";
 
 export const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 export const platform = os.platform();
