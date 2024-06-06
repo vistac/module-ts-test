@@ -3,6 +3,7 @@ import fs from 'fs';
 import { render, Text } from 'ink';
 import meow from 'meow';
 import { fileURLToPath } from 'url';
+import { doNothing } from './utils.js';
 const cli = meow(
 	`
 		Usage
