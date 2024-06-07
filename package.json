@@ -42,6 +42,7 @@
     "json5": "^2.2.3",
     "jsonstream": "^1.0.3",
     "meow": "^13.2.0",
+    "meow-helper": "^1.6.2",
     "mime-type": "^4.0.0",
     "moment": "^2.30.1",
     "moment-duration-format": "^2.3.2",
