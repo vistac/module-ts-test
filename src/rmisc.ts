@@ -56,7 +56,7 @@ const getConfig = async () => {
 
 const configFile = options['config'];
 const meetsDeleteKeywords = (filename: string, challenge: RegExp) => {
-  let result = challenge.test(filename);
+  const result = challenge.test(filename);
   return result;
 };
 const meetsFitRenameKeywords = (filename: string, challenge: string[]) => { };
@@ -92,9 +92,10 @@ const regexps = {
 };
 
 (async () => {
-  let dryrun = options['dryrun'];
-  let config = { ...defaultConfig, ...(await getConfig()) };
-  let max = options['max'];
+  return;
+  const dryrun = options['dryrun'];
+  const config = { ...defaultConfig, ...(await getConfig()) };
+  const max = options['max'];
 
   const scanDir = path.resolve(config['scanDir']);
   if (fs.existsSync(scanDir) == false) return;
@@ -102,7 +103,7 @@ const regexps = {
   regexps.regexpDeleteKeywords = genEscapedRegExp([...config['deleteKeywords'] || []]);
   regexps.regexpRenameByDirname = genEscapedRegExp([...config['renameByDirnameKeywords']]);
 
-  let renamePolicies: any[] = normalize(
+  const renamePolicies: any[] = normalize(
     [
       ...defaultConfig['renamePolicies'],
       ...config['renamePolicies'] || [],
@@ -115,41 +116,41 @@ const regexps = {
       return true;
     });
 
-  let files = listFilesRecursive(scanDir);
+  const files = listFilesRecursive(scanDir);
   let dirs: string[] = [];
   let left: any[] = [];
   let i = 0;
-  for (let file of files) {
+  for (const file of files) {
     if (i >= max) break;
     i++;
 
-    let stat = lstatSync(file);
+    const stat = lstatSync(file);
     if (stat.isDirectory()) {
       dirs = [...dirs, file];
       continue;
     }
     if (stat.isFile() === false) continue;
 
-    let info = path.parse(file);
-    let parentDirName = basename(info.dir);
+    const info = path.parse(file);
+    const parentDirName = basename(info.dir);
     let dest = file;
     let destBase = info.base;
     let action: Action = 'none';
 
     let deleteFile: boolean = false;
     let renameFile: boolean = false;
-    let renameByDirName: boolean = false;
+    const renameByDirName: boolean = false;
 
 
-    let meetsRenamePolicies: any[] =
+    const meetsRenamePolicies: any[] =
       renamePolicies
         .filter(x => {
           if ((new RegExp(x[0])).test(info.base) == false) return false;
           return true;
         });
     let meetsAllDeletePolicies = false;
-    let meetsDeleteKeywords = challengeWord(info.base, regexps.regexpDeleteKeywords);
-    let meetsRenameByDirnameKeywords = challengeWord(parentDirName, regexps.regexpRenameByDirname);
+    const meetsDeleteKeywords = challengeWord(info.base, regexps.regexpDeleteKeywords);
+    const meetsRenameByDirnameKeywords = challengeWord(parentDirName, regexps.regexpRenameByDirname);
 
     action = (
       meetsRenamePolicies.length > 0
