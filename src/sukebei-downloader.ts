@@ -114,7 +114,7 @@ const AppDataSource = new DataSource({
 			where: {
 				downloaded: false,
 			},
-			take: 1,
+			// take: 1,
 		}
 	);
 	const downloadOption: DownloaderHelperOptions = {
