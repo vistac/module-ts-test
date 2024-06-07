@@ -2,30 +2,52 @@
 import { existsSync, readFileSync } from "fs";
 import JSON5 from 'json5';
 import moment from "moment-timezone";
-import { default as Downloader } from "nodejs-file-downloader";
+import {
+	DownloaderHelper,
+	DownloaderHelperOptions,
+} from 'node-downloader-helper';
 import os from 'os';
 import path from "path";
 import { DataSource } from "typeorm";
 import { fileURLToPath } from 'url';
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
-import { Feed } from "./entities";
-import { localTime, randomRange, sleep } from "./utils";
+import { Feed } from "./entities.js";
+import { getConfig, localTime, randomRange, sleep, timeZone } from "./utils.js";
+import meow from "meow";
+import { url } from "inspector";
+import { error } from "console";
 
-
-const configFile = process.argv[2] || path.join(os.homedir(), 'etc', `sukebei-parser.json`);
-const getConfig = async () => {
-	if (await existsSync(configFile)) {
-		return JSON5.parse(readFileSync(configFile).toString());
-	} else {
-		return { includeKeywords: [], downloadTo: path.join(os.homedir(), 'torrents') };
-	}
-};
-
-// const __filename = fileURLToPath(import.meta.url);
-const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
-const platform = os.platform();
+
+const options = meow(
+	`
+	download torrents from https://sukebei.nyaa.si/?page=rss
+
+	Usage:
+
+	$ sukebei-downloader
+	--dryrun -d dry run.
+	--help -h show help.
+	`, {
+	importMeta: import.meta,
+	flags: {
+		config: {
+			shortFlag: 'c',
+			type: 'string',
+			default: path.join(os.homedir(), 'etc', `sukebei-parser.jsonc`),
+		},
+		help: {
+			shortFlag: 'h'
+		},
+		dryrun: {
+			shortFlag: 'd',
+			type: 'boolean'
+		},
+	}
+
+}).flags;
 
 const defaultConfig = {
 	rssUrl: 'https://sukebei.nyaa.si/?page=rss',
@@ -78,50 +100,65 @@ const AppDataSource = new DataSource({
 });
 
 (async () => {
-
-	let config = { ...defaultConfig, ...(await getConfig()) };
-
+	const config = await getConfig(options['config'] || '', defaultConfig);
 	AppDataSource.setOptions({ database: config['dbPath'] });
+
 	await AppDataSource.initialize()
 		.then(() => {
 			logger.info('init db done!');
 		})
 		.catch((error) => { logger.info({ message: 'init db failed', error: error }); return; });
-	let feedsRepository = AppDataSource.getRepository(Feed);
-	let items: any[] = await feedsRepository.find(
+	const feedsRepository = AppDataSource.getRepository(Feed);
+	const items: any[] = await feedsRepository.find(
 		{
 			where: {
 				downloaded: false,
 			},
+			take: 1,
 		}
 	);
-	for (let item of items) {
-		let wait = randomRange(5, 2);
-		let downloader = new Downloader({
-			url: item.link,
-			fileName: `${item.hash}.torrent`,
-			directory: config.downloadTo,
-			maxAttempts: 10,
-			headers: {
-				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0'
-			}
-		});
+	const downloadOption: DownloaderHelperOptions = {
+		headers: {
+			'User-Agent':
+				'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+		},
+		retry: { maxRetries: 3, delay: 3000 },
+		fileName: filename => filename,
+		resumeOnIncomplete: true,
+		resumeOnIncompleteMaxRetry: 3,
+		override: false,
+	};
 
-		try {
-			await downloader.download();
-			logger.info(`Download done: ${item.title}`);
-			item['downloaded'] = true;
-			item['downloadAt'] = localTime();
-			await feedsRepository
-				.save(item)
-				.then()
-				.catch(err => logger.info(['update db error', err]));
+	const url =
+		'https://file-examples.com/wp-content/storage/2017/04/file_example_MP4_480_1_5MG.mp4';
 
-		} catch (error) {
-			console.log(error);
-		}
+	const downloader = new DownloaderHelper('http://www.google.com/123.html', config['downloadTo'], downloadOption)
+		.on('end', downloadInfo => { })
+		.on('progress', stats => { })
+		.on('error', error => { });
+
+	for (const item of items) {
+		const wait = randomRange(5, 2);
+		downloader.updateOptions({ fileName: `${item['hash']}.torrent` }, item['link']);
+		console.log(`start download: ${item['link']}`);
+		const httpStatus: number = await downloader
+			.start()
+			.then(x => {
+				console.log('download done!');
+				return 0;
+			})
+			.catch(err => {
+				console.log(err);
+				return err.status;
+			});
+		if (httpStatus !== 0) continue;
+		item['downloaded'] = true;
+		item['downloadAt'] = localTime();
+		await feedsRepository
+			.save(item)
+			.then(x => `Download done: ${item.title}`)
+			.catch(err => logger.info(['update db error', err]));
 		await sleep(wait);
-		continue;
 	}
 
 })();
