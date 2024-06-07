@@ -22,8 +22,11 @@ const cli = meow(
 	Usage:
 	
 	$ sukebei-parser
-	--help -h show help
+	--dryrun -d dry run
 	--config -c input config file
+	--help -h show help
+	-
+
 	`, {
 	importMeta: import.meta,
 	flags: {
@@ -39,7 +42,7 @@ const cli = meow(
 			shortFlag: 'd',
 			type: 'boolean'
 		},
-		items: {
+		showItems: {
 			shortFlag: 'i',
 			type: 'boolean'
 		},
@@ -114,7 +117,7 @@ const AppDataSource = new DataSource({
 
 (async () => {
 	// let config = { ...defaultConfig, ...(await getConfig()) };
-	let config = await getConfig(cli.flags['config'] || '', defaultConfig);
+	const config = await getConfig(cli.flags['config'] || '', defaultConfig);
 	AppDataSource.setOptions({ database: config['dbPath'] });
 
 	await AppDataSource.initialize()
@@ -122,12 +125,12 @@ const AppDataSource = new DataSource({
 			logger.info('init db done!');
 		})
 		.catch((error) => { logger.info({ message: 'init db failed', error: error }); return; });
-	let feedsRepository = AppDataSource.getRepository(Feed);
+	const feedsRepository = AppDataSource.getRepository(Feed);
 
 	fileTransport.options.filename = config['logPath'];
 	fileTransport.options.auditFile = config['auditPath'];
 
-	let includeRegExp = new RegExp(
+	const includeRegExp = new RegExp(
 		[
 			...new Set(
 				[
@@ -139,7 +142,7 @@ const AppDataSource = new DataSource({
 			.map(x => escapeRegexString(x))
 			.join('|'), 'i');
 
-	let excludeRegExp = new RegExp(
+	const excludeRegExp = new RegExp(
 		[
 			...new Set(
 				[
@@ -160,8 +163,8 @@ const AppDataSource = new DataSource({
 	let items: any[] = ((await parser.parseURL(config['rssUrl'])).items as any);
 	items = items
 		.map(x => {
-			let tmp = x.contentSnippet.split('|').map(x => x.trim());
-			let res = {
+			const tmp = x.contentSnippet.split('|').map(x => x.trim());
+			const res = {
 				link: x.link,
 				downloadId: tmp[0] || '',
 				title: x.title || '',
@@ -173,18 +176,18 @@ const AppDataSource = new DataSource({
 			return res;
 		});
 
-	if (cli.flags['items'] === true) console.log(items);
-	for (let item of items) {
+	for (const item of items) {
 		if (excludeRegExp.test(item.title) == true) continue;
 		if (includeRegExp.test(item.title) == false) continue;
 		if (cli.flags['verbose'] === true) console.log(item);
 		delete item.found;
-		// logger.info(['insert', item]);
+		logger.info(`insert ${item['title']}`);
 		if (cli.flags['dryrun'] === true) continue;
 		await feedsRepository.save(item)
-			.then(x => { logger.info(['insert done!', x]); })
+			.then(x => { logger.info(`insert done ==> ${x['title']}`); })
 			.catch((e) => {
 				logger.info([`insert error:`, `${e.code}=>${e.errno}`, `hash: ${item.hash}`, `title: ${item.title}`]);
 			});
 	}
+	if (cli.flags['showItems'] === true) console.log(items);
 })();
