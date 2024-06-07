@@ -179,9 +179,8 @@ const AppDataSource = new DataSource({
 	for (const item of items) {
 		if (excludeRegExp.test(item.title) == true) continue;
 		if (includeRegExp.test(item.title) == false) continue;
-		if (cli.flags['verbose'] === true) console.log(item);
+		if (cli.flags['verbose'] === true) logger.info(`insert ${item['title']}`);
 		delete item.found;
-		logger.info(`insert ${item['title']}`);
 		if (cli.flags['dryrun'] === true) continue;
 		await feedsRepository.save(item)
 			.then(x => { logger.info(`insert done ==> ${x['title']}`); })
