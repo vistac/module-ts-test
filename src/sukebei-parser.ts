@@ -1,16 +1,15 @@
 #!/usr/bin/env node
-import JSON5 from 'json5';
+import meow from "meow";
 import moment from "moment-timezone";
 import os from 'os';
 import path from "path";
 import Parser from "rss-parser";
 import { DataSource } from "typeorm";
 import { fileURLToPath } from 'url';
-import { createLogger, format, transports, verbose } from "winston";
+import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
 import { Feed } from "./entities.js";
 import { escapeRegexString, getConfig, timeZone } from "./utils.js";
-import meow from "meow";
 
 const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
@@ -31,6 +30,7 @@ const cli = meow(
 
 	`, {
 	importMeta: import.meta,
+	allowUnknownFlags: false,
 	flags: {
 		help: {
 			shortFlag: 'h'
