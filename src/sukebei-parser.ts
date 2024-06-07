@@ -22,10 +22,12 @@ const cli = meow(
 	Usage:
 	
 	$ sukebei-parser
-	--dryrun -d dry run
-	--config -c input config file
-	--help -h show help
-	-
+	--dryrun -d dry run.
+	--config -c input config file.
+	--help -h show help.
+	--policies -p show filter policies.
+	--showItems -i show items from rss without filter.
+	--verbose -v verbose.
 
 	`, {
 	importMeta: import.meta,
@@ -54,7 +56,6 @@ const cli = meow(
 			shortFlag: 'v',
 			type: 'boolean'
 		}
-
 	}
 }
 );
