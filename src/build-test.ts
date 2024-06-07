@@ -4,18 +4,18 @@ import { listFilesRecursive } from "./utils.js";
 const time = new Date();
 
 (async () => {
-	let srcDir = "//bthome//downloads//completed//public";
-	let emuDir = "//bthome//rmisctest//";
-	let srcDirStr = path.resolve(srcDir);
-	let emuDirStr = path.resolve(emuDir);
-	let files = listFilesRecursive(srcDir);
-	for (let file of files) {
-		let info = path.parse(file);
-		let stat = lstatSync(file);
-		let fileBase = basename(file);
-		let targetDir = path.join(emuDir, info.dir.replace(srcDirStr, ''));
-		let targetFile = path.join(targetDir, info.base);
-		let msg = {
+	const srcDir = "//bthome//downloads//completed//public";
+	const emuDir = "//bthome//rmisctest//";
+	const srcDirStr = path.resolve(srcDir);
+	const emuDirStr = path.resolve(emuDir);
+	const files = listFilesRecursive(srcDir);
+	for (const file of files) {
+		const info = path.parse(file);
+		const stat = lstatSync(file);
+		const fileBase = basename(file);
+		const targetDir = path.join(emuDir, info.dir.replace(srcDirStr, ''));
+		const targetFile = path.join(targetDir, info.base);
+		const msg = {
 			file: file,
 			base: fileBase,
 			targetDir: targetDir,
@@ -29,7 +29,7 @@ const time = new Date();
 		}
 		if (stat.isFile()) {
 			try {
-				let fd = fs.openSync(targetFile, 'a');
+				const fd = fs.openSync(targetFile, 'a');
 				fs.closeSync(fd);
 			} catch (e) {
 				console.log(e);
