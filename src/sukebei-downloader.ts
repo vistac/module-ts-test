@@ -45,6 +45,11 @@ const options = meow(
 			shortFlag: 'd',
 			type: 'boolean'
 		},
+		take: {
+			shortFlag: 't',
+			type: 'number',
+			default: 9999
+		}
 	}
 
 }).flags;
@@ -114,7 +119,7 @@ const AppDataSource = new DataSource({
 			where: {
 				downloaded: false,
 			},
-			// take: 1,
+			take: options['take'],
 		}
 	);
 	const downloadOption: DownloaderHelperOptions = {
