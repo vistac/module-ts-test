@@ -1,23 +1,10 @@
-import dotTorrent from 'dot-torrent';
-import fs, { readFileSync } from 'fs';
 import { render, Text } from 'ink';
 import meow from 'meow';
+import {
+	DownloaderHelper,
+	DownloaderHelperOptions,
+} from 'node-downloader-helper';
 import { fileURLToPath } from 'url';
-import { doNothing } from './utils.js';
-import type { ExtendedAnyFlags } from 'meow-helper';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const testFlags: ExtendedAnyFlags = {
-	help: { alias: 'h', type: 'boolean', desc: 'help' },
-	name: { alias: 'n', type: 'string', desc: 'Name' },
-	cwd: { alias: 'c', type: 'string', desc: 'Working path.' },
-	context: { type: 'string', desc: 'Context.' },
-};
-const args = { "path...": "Paths of files." };
-const pkg = JSON.parse(readFileSync(join(__dirname, "../package.json"), { encoding: "utf8" }));
-
-console.log(pkg);
 const cli = meow(
 	`
 		Usage
@@ -51,12 +38,6 @@ const Counter = () => (
 		<Text>Example</Text>
 	</>
 );
-import {
-	DownloaderHelper,
-	DownloaderHelperOptions,
-} from 'node-downloader-helper';
-import Parser from 'rss-parser';
-import { dirname, join } from 'path';
 (async () => {
 	const url =
 		'https://file-examples.com/wp-content/storage/2017/04/file_example_MP4_480_1_5MG.mp4';
