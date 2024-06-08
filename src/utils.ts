@@ -115,6 +115,15 @@ export const listFilesRecursive = (dirName: string): string[] => {
 	return result;
 };
 
+// 用??取代||
+// || 會把 0 和 ""視為false
+// ??會把 0 和 ""視為true
+export const nullishCoalescing = (num?: number, str?: string) => {
+	num = num ?? 1;
+	str = str ?? "default str";
+	console.log(`number: ${num}, string: ${str}`);
+};
+
 import JSON5 from 'json5';
 export const getConfig = async (filename: string, defaultConfig: any = {}) => {
 	if (await existsSync(filename)) {
