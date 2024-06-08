@@ -1,5 +1,5 @@
-import { render, Text } from 'ink';
-import { fileURLToPath } from 'url';
+import { Text } from 'ink';
+import { nullishCoalescing } from './utils.js';
 
 const Counter = () => (
 	<>
@@ -9,6 +9,7 @@ const Counter = () => (
 const aa = async () => { console.log(`12`); return 'aa'; };
 const bb = await aa();
 console.log(bb);
+nullishCoalescing(0, "");
 // (async () => {
 // 	const url =
 // 		'https://file-examples.com/wp-content/storage/2017/04/file_example_MP4_480_1_5MG.mp4';
