@@ -9,6 +9,7 @@
     "skipLibCheck": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "noUncheckedIndexedAccess": true,
     "jsx": "react-jsx",
     "rootDir": "src",
     "outDir": "./dist"
