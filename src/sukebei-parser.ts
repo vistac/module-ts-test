@@ -25,7 +25,8 @@ const cli = meow(
 	--config -c input config file.
 	--help -h show help.
 	--policies -p show filter policies.
-	--showItems -i show items from rss without filter.
+	--rss -r show origin rss feeds.
+	--showItems -i show items from rss after filter.
 	--verbose -v verbose.
 
 	`, {
@@ -50,6 +51,10 @@ const cli = meow(
 		},
 		policies: {
 			shortFlag: 'p',
+			type: 'boolean'
+		},
+		rss: {
+			shortFlag: 'r',
 			type: 'boolean'
 		},
 		verbose: {
@@ -126,8 +131,8 @@ if (cli.flags['policies'] == true) {
 	});
 }
 
-let items: any[] = ((await parser.parseURL(config['rssUrl'])).items as any);
-items = items
+const rss: any[] = ((await parser.parseURL(config['rssUrl'])).items as any);
+const items = rss
 	.map(x => {
 		const tmp = x.contentSnippet.split('|').map(x => x.trim());
 		const res = {
@@ -142,6 +147,7 @@ items = items
 		return res;
 	});
 
+console.log(items);
 for (const item of items) {
 	if (excludeRegExp.test(item.title) == true) continue;
 	if (includeRegExp.test(item.title) == false) continue;
@@ -154,7 +160,8 @@ for (const item of items) {
 			logger.info([`insert error:`, `${e.code}=>${e.errno}`, `hash: ${item.hash}`, `title: ${item.title}`]);
 		});
 }
-if (cli.flags['showItems'] === true) console.log(items);
+if (cli.flags['rss'] === true) console.log('rss', rss);
+if (cli.flags['showItems'] === true) console.log('items', items);
 
 logger.info('end parser');
 logger.info('');
