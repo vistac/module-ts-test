@@ -1,6 +1,7 @@
 import fs, { existsSync, lstatSync, readFileSync, readdirSync } from 'fs';
 import JSON5 from 'json5';
 import moment from "moment-timezone";
+import { DownloaderHelperOptions } from 'node-downloader-helper';
 import os from 'os';
 import path from "path";
 import winston, { createLogger, transports } from 'winston';
@@ -170,3 +171,15 @@ export const logger = createLogger({
 		consoleTransport,
 	],
 });
+
+export const downloadOption: DownloaderHelperOptions = {
+	headers: {
+		'User-Agent':
+			'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+	},
+	retry: { maxRetries: 3, delay: 3000 },
+	fileName: filename => filename,
+	resumeOnIncomplete: true,
+	resumeOnIncompleteMaxRetry: 3,
+	override: false,
+};
