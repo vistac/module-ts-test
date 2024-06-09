@@ -6,7 +6,7 @@ import path, { basename } from "path";
 import { fileURLToPath } from 'url';
 import "winston-daily-rotate-file";
 import { RenameRules } from './rules.js';
-import { challengeWord, filenameIncrement, genEscapedRegExp, getConfig, getLogFormat, listFilesRecursive, logger, normalize } from "./utils.js";
+import { challengeWord, doNothing, filenameIncrement, genEscapedRegExp, getConfig, getLogFormat, listFilesRecursive, logger, normalize } from "./utils.js";
 export type Action = 'none' | 'delete' | 'move';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -203,12 +203,14 @@ const regexps: { [key: string]: RegExp; } = {};
 		// if (options['dryrun'] == false) {
 		switch (action) {
 			case "delete": {
-				logger.info(`delete file: ${file}`);
+				// logger.info(`delete file: ${file}`);
+				(options['dryrun'] == false) ? console.log('delete file...', file) : doNothing();
 				// fs.rmSync(file);
 				continue;
 			}
 			case 'move': {
-				logger.info(`move file \n  from ==> ${file} \n  to ==> ${dest}`);
+				// logger.info(`move file \n  from ==> ${file} \n  to ==> ${dest}`);
+				(options['dryrun'] === false) ? console.log('move file...', dest) : doNothing();
 				// fs.renameSync(file, dest);
 				continue;
 			}
