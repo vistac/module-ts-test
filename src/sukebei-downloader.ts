@@ -1,18 +1,15 @@
 #!/usr/bin/env node
 import meow from "meow";
-import moment from "moment-timezone";
 import {
 	DownloaderHelper,
-	DownloaderHelperOptions,
 } from 'node-downloader-helper';
 import os from 'os';
 import path from "path";
 import { DataSource } from "typeorm";
 import { fileURLToPath } from 'url';
-import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
 import { Feed } from "./entities.js";
-import { getConfig, localTime, randomRange, sleep, timeZone } from "./utils.js";
+import { downloadOption, getConfig, getLogFormat, localTime, logger, randomRange, sleep } from "./utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
@@ -58,37 +55,7 @@ const defaultConfig = {
 	auditPath: path.join(os.homedir(), 'etc', `${appName}-audit.json`),
 	dbPath: path.join(os.homedir(), 'etc', `sukebei-parser.sqlite`)
 };
-
-const fileTransport = new transports.DailyRotateFile({
-	level: 'info',
-	filename: defaultConfig.logPath,
-	auditFile: defaultConfig.auditPath,
-	symlinkName: defaultConfig.logSymlinkPath,
-	createSymlink: true,
-	zippedArchive: true,
-	maxSize: '50m',
-	maxFiles: '7d'
-});
-
-const consoleTransport = new transports.Console({});
-const logger = createLogger({
-	transports: [
-		fileTransport,
-		consoleTransport,
-	],
-	format: format.combine(
-		format.label({ label: appName }),
-		format.colorize(),
-		format.prettyPrint(),
-		format.printf((info) => {
-			if (typeof (info.message) === 'string') {
-				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level} ${info.message}`;
-			} else {
-				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level}\n${JSON.stringify(info.message, null, 2)}`;
-			}
-		})
-	)
-});
+logger.format = getLogFormat('Sukebei-Downloader');
 
 const AppDataSource = new DataSource({
 	type: 'sqlite',
@@ -114,17 +81,6 @@ const items: any[] = await feedsRepository.find(
 		take: options['take'],
 	}
 );
-const downloadOption: DownloaderHelperOptions = {
-	headers: {
-		'User-Agent':
-			'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
-	},
-	retry: { maxRetries: 3, delay: 3000 },
-	fileName: filename => filename,
-	resumeOnIncomplete: true,
-	resumeOnIncompleteMaxRetry: 3,
-	override: false,
-};
 
 const url =
 	'https://file-examples.com/wp-content/storage/2017/04/file_example_MP4_480_1_5MG.mp4';
@@ -134,26 +90,31 @@ const downloader = new DownloaderHelper('http://www.google.com/123.html', config
 	.on('progress', stats => { })
 	.on('error', error => { });
 
+logger.info('start download process....');
 for (const item of items) {
 	const wait = randomRange(5, 2);
 	downloader.updateOptions({ fileName: `${item['hash']}.torrent` }, item['link']);
-	console.log(`start download: ${item['link']}`);
+	logger.info(`download: ${item['link']}`);
+	logger.info(`title: ${item['title']}`);
 	const httpStatus: number = await downloader
 		.start()
 		.then(x => {
-			console.log('download done!');
+			logger.info(`download success.`);
 			return 0;
 		})
 		.catch(err => {
-			console.log(err);
+			logger.info(`download failed, code : ${err.status}`);
 			return err.status;
 		});
-	if (httpStatus !== 0) continue;
-	item['downloaded'] = true;
-	item['downloadAt'] = localTime();
-	await feedsRepository
-		.save(item)
-		.then(x => `Download done: ${item.title}`)
-		.catch(err => logger.info(['update db error', err]));
+	if (httpStatus === 0) {
+		item['downloaded'] = true;
+		item['downloadAt'] = localTime();
+		await feedsRepository
+			.save(item)
+			.then(x => `Download done: ${item.title}`)
+			.catch(err => logger.info(['update db error', err]));
+	}
+	logger.info('');
 	await sleep(wait);
 }
+logger.info(`end process...`);
