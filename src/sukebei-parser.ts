@@ -115,79 +115,76 @@ const AppDataSource = new DataSource({
 	entities: [Feed]
 });
 
+const config = await getConfig(cli.flags['config'] || '', defaultConfig);
+AppDataSource.setOptions({ database: config['dbPath'] });
 
-(async () => {
-	// let config = { ...defaultConfig, ...(await getConfig()) };
-	const config = await getConfig(cli.flags['config'] || '', defaultConfig);
-	AppDataSource.setOptions({ database: config['dbPath'] });
+await AppDataSource.initialize()
+	.then(() => {
+		logger.info('init db done!');
+	})
+	.catch((error) => { logger.info({ message: 'init db failed', error: error }); return; });
+const feedsRepository = AppDataSource.getRepository(Feed);
 
-	await AppDataSource.initialize()
-		.then(() => {
-			logger.info('init db done!');
-		})
-		.catch((error) => { logger.info({ message: 'init db failed', error: error }); return; });
-	const feedsRepository = AppDataSource.getRepository(Feed);
+fileTransport.options.filename = config['logPath'];
+fileTransport.options.auditFile = config['auditPath'];
 
-	fileTransport.options.filename = config['logPath'];
-	fileTransport.options.auditFile = config['auditPath'];
+const includeRegExp = new RegExp(
+	[
+		...new Set(
+			[
+				...includeKeywords,
+				...config['includeKeywords'] || []
+			]
+		)
+	]
+		.map(x => escapeRegexString(x))
+		.join('|'), 'i');
 
-	const includeRegExp = new RegExp(
-		[
-			...new Set(
-				[
-					...includeKeywords,
-					...config['includeKeywords'] || []
-				]
-			)
-		]
-			.map(x => escapeRegexString(x))
-			.join('|'), 'i');
+const excludeRegExp = new RegExp(
+	[
+		...new Set(
+			[
+				...excludeKeywords,
+				...config['excludeKeywords'] || []
+			]
+		)
+	]
+		.map(x => escapeRegexString(x))
+		.join('|'), 'i');
 
-	const excludeRegExp = new RegExp(
-		[
-			...new Set(
-				[
-					...excludeKeywords,
-					...config['excludeKeywords'] || []
-				]
-			)
-		]
-			.map(x => escapeRegexString(x))
-			.join('|'), 'i');
+if (cli.flags['policies'] == true) {
+	console.log({
+		include: includeRegExp,
+		exclude: excludeRegExp
+	});
+}
 
-	if (cli.flags['policies'] == true) {
-		console.log({
-			include: includeRegExp,
-			exclude: excludeRegExp
+let items: any[] = ((await parser.parseURL(config['rssUrl'])).items as any);
+items = items
+	.map(x => {
+		const tmp = x.contentSnippet.split('|').map(x => x.trim());
+		const res = {
+			link: x.link,
+			downloadId: tmp[0] || '',
+			title: x.title || '',
+			hash: tmp[4 + ((x.title.match(/\|/g) || []).length) || 0],
+			found: includeRegExp.test(tmp[1]) && !excludeRegExp.test(tmp[1]),
+			include: includeRegExp.test(tmp[1]),
+			exclude: excludeRegExp.test(tmp[1])
+		};
+		return res;
+	});
+
+for (const item of items) {
+	if (excludeRegExp.test(item.title) == true) continue;
+	if (includeRegExp.test(item.title) == false) continue;
+	if (cli.flags['verbose'] === true) logger.info(`insert ${item['title']}`);
+	delete item.found;
+	if (cli.flags['dryrun'] === true) continue;
+	await feedsRepository.save(item)
+		.then(x => { logger.info(`insert done ==> ${x['title']}`); })
+		.catch((e) => {
+			logger.info([`insert error:`, `${e.code}=>${e.errno}`, `hash: ${item.hash}`, `title: ${item.title}`]);
 		});
-	}
-	let items: any[] = ((await parser.parseURL(config['rssUrl'])).items as any);
-	items = items
-		.map(x => {
-			const tmp = x.contentSnippet.split('|').map(x => x.trim());
-			const res = {
-				link: x.link,
-				downloadId: tmp[0] || '',
-				title: x.title || '',
-				hash: tmp[4 + ((x.title.match(/\|/g) || []).length) || 0],
-				found: includeRegExp.test(tmp[1]) && !excludeRegExp.test(tmp[1]),
-				include: includeRegExp.test(tmp[1]),
-				exclude: excludeRegExp.test(tmp[1])
-			};
-			return res;
-		});
-
-	for (const item of items) {
-		if (excludeRegExp.test(item.title) == true) continue;
-		if (includeRegExp.test(item.title) == false) continue;
-		if (cli.flags['verbose'] === true) logger.info(`insert ${item['title']}`);
-		delete item.found;
-		if (cli.flags['dryrun'] === true) continue;
-		await feedsRepository.save(item)
-			.then(x => { logger.info(`insert done ==> ${x['title']}`); })
-			.catch((e) => {
-				logger.info([`insert error:`, `${e.code}=>${e.errno}`, `hash: ${item.hash}`, `title: ${item.title}`]);
-			});
-	}
-	if (cli.flags['showItems'] === true) console.log(items);
-})();
+}
+if (cli.flags['showItems'] === true) console.log(items);
