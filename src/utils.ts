@@ -1,7 +1,10 @@
 import fs, { existsSync, lstatSync, readFileSync, readdirSync } from 'fs';
+import JSON5 from 'json5';
 import moment from "moment-timezone";
 import os from 'os';
 import path from "path";
+import winston, { createLogger, transports } from 'winston';
+import 'winston-daily-rotate-file';
 
 export const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 export const platform = os.platform();
@@ -124,7 +127,6 @@ export const nullishCoalescing = (num?: number, str?: string) => {
 	console.log(`number: ${num}, string: ${str}`);
 };
 
-import JSON5 from 'json5';
 export const getConfig = async (filename: string, defaultConfig: any = {}) => {
 	if (await existsSync(filename)) {
 		return { ...defaultConfig, ...JSON5.parse(readFileSync(filename).toString()) };
@@ -132,3 +134,39 @@ export const getConfig = async (filename: string, defaultConfig: any = {}) => {
 		return defaultConfig;
 	}
 };
+
+export const getLogFormat = (label: string) => {
+	return winston.format.combine(
+		winston.format.label({ label }),
+		winston.format.colorize(),
+		winston.format.prettyPrint(),
+		winston.format.printf((info) => {
+			if (typeof (info.message) === 'string') {
+				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level} ${info.message}`;
+			} else {
+				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level}\n${JSON.stringify(info.message, null, 2)}`;
+			}
+		})
+	);
+};
+
+const consoleTransport = new transports.Console({});
+
+const fileTransport = new transports.DailyRotateFile({
+	level: 'info',
+	filename: path.join(os.homedir(), 'log', 'cliapps-%DATE%.log'),
+	auditFile: path.join(os.homedir(), 'etc', 'cliapps-audit.json'),
+	symlinkName: 'cliapps.log',
+	createSymlink: true,
+	zippedArchive: true,
+	maxSize: '10m',
+	maxFiles: '7d'
+});
+
+
+export const logger = createLogger({
+	transports: [
+		fileTransport,
+		consoleTransport,
+	],
+});
