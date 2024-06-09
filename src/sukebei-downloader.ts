@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "fs";
-import JSON5 from 'json5';
+import meow from "meow";
 import moment from "moment-timezone";
 import {
 	DownloaderHelper,
@@ -14,9 +13,6 @@ import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
 import { Feed } from "./entities.js";
 import { getConfig, localTime, randomRange, sleep, timeZone } from "./utils.js";
-import meow from "meow";
-import { url } from "inspector";
-import { error } from "console";
 
 const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
@@ -97,73 +93,67 @@ const logger = createLogger({
 const AppDataSource = new DataSource({
 	type: 'sqlite',
 	database: `torrents.sqlite`,
-	// synchronize true will re-build the db with every build. definitely not recommended to use in production
 	synchronize: false,
-	// entityPrefix: 'rss_',
-	// entities: [path.join(__dirname, '**', '*.entity.ts')]
 	entities: [Feed]
 });
 
-(async () => {
-	const config = await getConfig(options['config'] || '', defaultConfig);
-	AppDataSource.setOptions({ database: config['dbPath'] });
+const config = await getConfig(options['config'] || '', defaultConfig);
+AppDataSource.setOptions({ database: config['dbPath'] });
 
-	await AppDataSource.initialize()
-		.then(() => {
-			logger.info('init db done!');
-		})
-		.catch((error) => { logger.info({ message: 'init db failed', error: error }); return; });
-	const feedsRepository = AppDataSource.getRepository(Feed);
-	const items: any[] = await feedsRepository.find(
-		{
-			where: {
-				downloaded: false,
-			},
-			take: options['take'],
-		}
-	);
-	const downloadOption: DownloaderHelperOptions = {
-		headers: {
-			'User-Agent':
-				'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+await AppDataSource.initialize()
+	.then(() => {
+		logger.info('init db done!');
+	})
+	.catch((error) => { logger.info({ message: 'init db failed', error: error }); return; });
+const feedsRepository = AppDataSource.getRepository(Feed);
+const items: any[] = await feedsRepository.find(
+	{
+		where: {
+			downloaded: false,
 		},
-		retry: { maxRetries: 3, delay: 3000 },
-		fileName: filename => filename,
-		resumeOnIncomplete: true,
-		resumeOnIncompleteMaxRetry: 3,
-		override: false,
-	};
-
-	const url =
-		'https://file-examples.com/wp-content/storage/2017/04/file_example_MP4_480_1_5MG.mp4';
-
-	const downloader = new DownloaderHelper('http://www.google.com/123.html', config['downloadTo'], downloadOption)
-		.on('end', downloadInfo => { })
-		.on('progress', stats => { })
-		.on('error', error => { });
-
-	for (const item of items) {
-		const wait = randomRange(5, 2);
-		downloader.updateOptions({ fileName: `${item['hash']}.torrent` }, item['link']);
-		console.log(`start download: ${item['link']}`);
-		const httpStatus: number = await downloader
-			.start()
-			.then(x => {
-				console.log('download done!');
-				return 0;
-			})
-			.catch(err => {
-				console.log(err);
-				return err.status;
-			});
-		if (httpStatus !== 0) continue;
-		item['downloaded'] = true;
-		item['downloadAt'] = localTime();
-		await feedsRepository
-			.save(item)
-			.then(x => `Download done: ${item.title}`)
-			.catch(err => logger.info(['update db error', err]));
-		await sleep(wait);
+		take: options['take'],
 	}
+);
+const downloadOption: DownloaderHelperOptions = {
+	headers: {
+		'User-Agent':
+			'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+	},
+	retry: { maxRetries: 3, delay: 3000 },
+	fileName: filename => filename,
+	resumeOnIncomplete: true,
+	resumeOnIncompleteMaxRetry: 3,
+	override: false,
+};
 
-})();
+const url =
+	'https://file-examples.com/wp-content/storage/2017/04/file_example_MP4_480_1_5MG.mp4';
+
+const downloader = new DownloaderHelper('http://www.google.com/123.html', config['downloadTo'], downloadOption)
+	.on('end', downloadInfo => { })
+	.on('progress', stats => { })
+	.on('error', error => { });
+
+for (const item of items) {
+	const wait = randomRange(5, 2);
+	downloader.updateOptions({ fileName: `${item['hash']}.torrent` }, item['link']);
+	console.log(`start download: ${item['link']}`);
+	const httpStatus: number = await downloader
+		.start()
+		.then(x => {
+			console.log('download done!');
+			return 0;
+		})
+		.catch(err => {
+			console.log(err);
+			return err.status;
+		});
+	if (httpStatus !== 0) continue;
+	item['downloaded'] = true;
+	item['downloadAt'] = localTime();
+	await feedsRepository
+		.save(item)
+		.then(x => `Download done: ${item.title}`)
+		.catch(err => logger.info(['update db error', err]));
+	await sleep(wait);
+}
