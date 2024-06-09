@@ -1,19 +1,20 @@
 #!/usr/bin/env node
-import fs, { existsSync, lstatSync, readFileSync } from 'fs';
-import JSON5 from 'json5';
+import fs, { lstatSync } from 'fs';
+import meow from 'meow';
 import os from 'os';
 import path, { basename } from "path";
-import "winston-daily-rotate-file";
-import { challengeWord, filenameIncrement, genEscapedRegExp, getConfig, listFilesRecursive, normalize } from "./utils.js";
-import meow from 'meow';
 import { fileURLToPath } from 'url';
+import "winston-daily-rotate-file";
+import { RenameRules } from './rules.js';
+import { challengeWord, filenameIncrement, genEscapedRegExp, getConfig, getLogFormat, listFilesRecursive, logger, normalize } from "./utils.js";
 export type Action = 'none' | 'delete' | 'move';
+
 const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
 
 
 const defaultConfig = {
-	scanDir: "//rmisc",
+	scanDir: "//bthome//rmisctest",
 	renameByDirnameKeywords: ['XC'],
 	deleteKeywords: [
 		"(.url|.htm|.html|.mht|.nfo)$"
@@ -36,8 +37,11 @@ const options = meow(
 	--max -m max process count.
 	--showConfig -s show config.
 	--showDeleteKeys show delete keywords.
+	--trace -t trace action.
+	--verbose -v verbose.
 	`, {
 	importMeta: import.meta,
+	allowUnknownFlags: false,
 	flags: {
 		config: {
 			shortFlag: 'c',
@@ -47,7 +51,7 @@ const options = meow(
 		dryrun: {
 			shortFlag: 'd',
 			type: 'boolean',
-			default: true
+			// default: true
 		},
 		help: {
 			shortFlag: 'h'
@@ -68,14 +72,18 @@ const options = meow(
 		showDeleteKeys: {
 			type: 'boolean'
 		},
-		take: {
+		trace: {
 			shortFlag: 't',
-			type: 'number',
-			default: 9999
+			type: 'boolean'
+		},
+		verbose: {
+			shortFlag: 'v',
+			type: 'boolean',
 		}
 	}
 
 }).flags;
+logger.format = getLogFormat('rmisc');
 
 const meetsDeleteKeywords = (filename: string, challenge: RegExp) => {
 	const result = challenge.test(filename);
@@ -84,173 +92,136 @@ const meetsDeleteKeywords = (filename: string, challenge: RegExp) => {
 const meetsFitRenameKeywords = (filename: string, challenge: string[]) => { };
 const meetsFitKeepKeywords = (filename: string, challenge: string[]) => { };
 
-const renameByRule = (srcString: string, policy: string[]) => {
-	let result = srcString;
-	if (eval(`typeof ${policy[2]} === 'function'`)) {
-		result = eval(`${policy[2]}('${srcString}', '${policy[0]}', '${policy[1]}')`);
-	}
-	return result;
-};
 
-const ruleJavch = (srcString: string, pattern: string, replacement: string): string => {
-	return srcString.replace(new RegExp(pattern, 'i'), (...args) => `${args[1].toUpperCase()}-${args[2]}-C.mp4`);
-};
-
-const ruleUpper = (srcString: string, pattern: string, replacement: string): string => {
-	return srcString.replace(new RegExp(pattern, 'i'), (...args) => `${args[1].toUpperCase()}-${args[2]}.mp4`);
-};
-
-const ruleRemove = (srcString: string, pattern: string, replacement: string): string => {
-	return srcString.replace(new RegExp(pattern, 'i'), (...args) => `${args[1].toUpperCase()}.mp4`);
-};
-
-const ruleNormal = (srcString: string, pattern: string, replacement: string): string => {
-	return srcString.replace(new RegExp(pattern, 'i'), replacement);
-};
-
-const regexps = {
-	regexpDeleteKeywords: new RegExp(/\`/),
-	regexpRenameByDirname: new RegExp(/\'/)
-};
+const dryrun = options['dryrun'];
+const nullRegexp = new RegExp(/\`/);
+const regexps: { [key: string]: RegExp; } = {};
+// regexpDeleteKeywords: new RegExp(/\`/),
+// regexpRenameByDirname: new RegExp(/\'/)
 
 (async () => {
 	const config = await getConfig(options['config'] || '', defaultConfig);
-	console.log(config);
-	//   return;
-	//   const dryrun = options['dryrun'];
-	//   const config = { ...defaultConfig, ...(await getConfig()) };
-	//   const max = options['max'];
+	const scanDir = path.resolve(config['scanDir']);
+	if (fs.existsSync(scanDir) == false) return;
+	regexps.deleteKeywords = genEscapedRegExp([...config['deleteKeywords'] || []]) ?? nullRegexp;
+	regexps.renameByDirname = genEscapedRegExp([...config['renameByDirnameKeywords']]) ?? nullRegexp;
+	const renamePolicies: any[] = normalize(
+		[
+			...defaultConfig['renamePolicies'],
+			...config['renamePolicies'] || [],
+		]
+	)
+		.filter(x => {
+			if (x.length < 3) return false;
+			if (x.filter(y => y !== null).length < 3) return false;
+			if (x.filter(y => y.trim() !== '').length < 3) return false;
+			return true;
+		});
 
-	//   const scanDir = path.resolve(config['scanDir']);
-	//   if (fs.existsSync(scanDir) == false) return;
+	const files = listFilesRecursive(scanDir);
+	const dirs: string[] = [];
+	const left: string[] = [];
+	for (const [index, file] of Object.entries(files)) {
+		const i: number = parseInt(index);
+		if (i > options['max'] - 1) break;
 
-	//   regexps.regexpDeleteKeywords = genEscapedRegExp([...config['deleteKeywords'] || []]);
-	//   regexps.regexpRenameByDirname = genEscapedRegExp([...config['renameByDirnameKeywords']]);
+		const stat = lstatSync(file);
+		if (stat.isDirectory()) {
+			dirs.push(file);
+			continue;
+		}
 
-	//   const renamePolicies: any[] = normalize(
-	//     [
-	//       ...defaultConfig['renamePolicies'],
-	//       ...config['renamePolicies'] || [],
-	//     ]
-	//   )
-	//     .filter(x => {
-	//       if (x.length < 3) return false;
-	//       if (x.filter(y => y !== null).length < 3) return false;
-	//       if (x.filter(y => y.trim() !== '').length < 3) return false;
-	//       return true;
-	//     });
+		if (stat.isFile() === false) continue;
 
-	//   const files = listFilesRecursive(scanDir);
-	//   let dirs: string[] = [];
-	//   let left: any[] = [];
-	//   let i = 0;
-	//   for (const file of files) {
-	//     if (i >= max) break;
-	//     i++;
+		const info = path.parse(file);
+		const parentDirName = basename(info.dir);
+		let dest = file;
+		let destBase = info.base;
+		let action: Action = 'none';
+		let deleteFile: boolean = false;
+		let renameFile: boolean = false;
+		const renameByDirName: boolean = false;
 
-	//     const stat = lstatSync(file);
-	//     if (stat.isDirectory()) {
-	//       dirs = [...dirs, file];
-	//       continue;
-	//     }
-	//     if (stat.isFile() === false) continue;
+		const meetsRenamePolicies: any[] =
+			renamePolicies
+				.filter(x => {
+					if ((new RegExp(x[0])).test(info.base) == false) return false;
+					return true;
+				});
+		const meetsAllDeletePolicies = false;
+		const meetsDeleteKeywords = challengeWord(info.base, regexps.deleteKeywords);
+		const meetsRenameByDirnameKeywords = challengeWord(parentDirName, regexps.renameByDirname);
 
-	//     const info = path.parse(file);
-	//     const parentDirName = basename(info.dir);
-	//     let dest = file;
-	//     let destBase = info.base;
-	//     let action: Action = 'none';
+		action = (
+			meetsRenamePolicies.length > 0
+			|| meetsRenameByDirnameKeywords
+		) ? 'move' : action;
+		action = challengeWord(info.base, regexps.deleteKeywords) ? 'delete' : action;
 
-	//     let deleteFile: boolean = false;
-	//     let renameFile: boolean = false;
-	//     const renameByDirName: boolean = false;
+		if (meetsRenameByDirnameKeywords) {
+			destBase = `${parentDirName}${info.ext}`;
+		}
 
+		if (meetsRenamePolicies.length > 0) renameFile = true;
 
-	//     const meetsRenamePolicies: any[] =
-	//       renamePolicies
-	//         .filter(x => {
-	//           if ((new RegExp(x[0])).test(info.base) == false) return false;
-	//           return true;
-	//         });
-	//     let meetsAllDeletePolicies = false;
-	//     const meetsDeleteKeywords = challengeWord(info.base, regexps.regexpDeleteKeywords);
-	//     const meetsRenameByDirnameKeywords = challengeWord(parentDirName, regexps.regexpRenameByDirname);
+		renamePolicies
+			.map(x => {
+				destBase = RenameRules.renameByRule(destBase, x);
+			});
 
-	//     action = (
-	//       meetsRenamePolicies.length > 0
-	//       || challengeWord(parentDirName, regexps.regexpRenameByDirname)
-	//     ) ? 'move' : action;
+		if (file == path.resolve(path.join(scanDir, destBase))) {
+			continue;
+		}
 
-	//     action = challengeWord(info.base, regexps.regexpDeleteKeywords) ? 'delete' : action;
+		dest = filenameIncrement(path.join(scanDir, destBase));
 
-	//     if (meetsRenameByDirnameKeywords) {
-	//       destBase = `${parentDirName}${info.ext}`;
-	//     }
+		// if (meetsDeleteKeywords == true) {
+		// 	meetsAllDeletePolicies = true;
+		// }
 
-	//     if (meetsRenamePolicies.length > 0) renameFile = true;
+		//     if (dryrun == false && (meetsAllDeletePolicies == true)) {
+		//       deleteFile = true;
+		//     }
 
-	//     renamePolicies
-	//       .map(x => {
-	//         destBase = renameByRule(destBase, x);
-	//       });
+		let msg = {
+			seq: i,
+			meetsRenamePolicies: meetsRenamePolicies,
+			deleteByKeyword: meetsDeleteKeywords,
+			dir: info.dir,
+			base: info.base,
+			dest: dest,
+			destBase: destBase,
+			ext: info.ext,
+			parentDirName: parentDirName,
+			action: action
+		};
+		//     // if (meetsRenameByDirnameKeywords) console.log(msg);
+		//     if (options['show-delete-keys'] == true) msg = { ...{ deleteRegexp: regexps.regexpDeleteKeywords }, ...msg, };
+		if (options['trace'] == true) console.log(msg);
 
-	//     if (file == path.resolve(path.join(scanDir, destBase))) {
-	//       continue;
-	//     }
-
-	//     dest = filenameIncrement(path.join(scanDir, destBase));
-
-	//     if (meetsDeleteKeywords == true) {
-	//       meetsAllDeletePolicies = true;
-	//     }
-
-	//     if (dryrun == false && (meetsAllDeletePolicies == true)) {
-	//       deleteFile = true;
-	//     }
-
-	//     let msg = {
-	//       meetsRenamePolicies: meetsRenamePolicies,
-	//       seq: i,
-	//       dryrun: dryrun,
-	//       deleteByKeyword: meetsDeleteKeywords,
-	//       dir: info.dir,
-	//       base: info.base,
-	//       dest: dest,
-	//       destBase: destBase,
-	//       ext: info.ext,
-	//       parentDirName: parentDirName,
-	//       action: action
-	//     };
-	//     // if (meetsRenameByDirnameKeywords) console.log(msg);
-	//     if (options['show-delete-keys'] == true) msg = { ...{ deleteRegexp: regexps.regexpDeleteKeywords }, ...msg, };
-	//     if (options['verbose'] == true) console.log(msg);
-
-	//     //compare delete keywords
-	//     if (options['dryrun'] == false) {
-	//       switch (action) {
-	//         case "delete": {
-	//           // console.log(`delete ${file}`);
-	//           fs.rmSync(file);
-	//           break;
-	//         }
-	//         case 'move': {
-	//           // console.log(`move : ${file} to ${dest}`);
-	//           fs.renameSync(file, dest);
-	//           break;
-	//         }
-	//         case 'none': {
-	//           break;
-	//         }
-	//         default: {
-	//           break;
-	//         }
-	//       }
-
-	//     }
-	//     if (action == 'none')
-	//       left = [...left, info.base];
-
-	//   }
+		//compare delete keywords
+		// if (options['dryrun'] == false) {
+		switch (action) {
+			case "delete": {
+				logger.info(`delete file: ${file}`);
+				// fs.rmSync(file);
+				continue;
+			}
+			case 'move': {
+				logger.info(`move file \n  from ==> ${file} \n  to ==> ${dest}`);
+				// fs.renameSync(file, dest);
+				continue;
+			}
+			case 'none': {
+				left.push(info.base);
+				break;
+			}
+			default: {
+				break;
+			}
+		}
+		logger.info('');
+	}
 	//   if (options['dryrun'] == false) {
 	//     dirs.reverse()
 	//       .map(x => {
@@ -261,6 +232,6 @@ const regexps = {
 	//       });
 	//   }
 
-	//   if (options['left'] == true) console.dir({ left: left, size: left.length, scanDir: scanDir, dryrun: dryrun }, { maxArrayLength: null });
-	//   if (options['showConfig']) console.log(config);
+	if (options['left'] == true) console.dir({ left: left, size: left.length, scanDir: scanDir, dryrun: dryrun }, { maxArrayLength: null });
+	if (options['showConfig']) console.log(config);
 })();
