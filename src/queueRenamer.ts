@@ -3,13 +3,11 @@ import child_process from 'child_process';
 import dotTorrent from 'dot-torrent';
 import fs from "fs";
 import meow from 'meow';
-import moment from "moment-timezone";
 import os from 'os';
 import path from "path";
 import { fileURLToPath } from 'url';
-import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
-import { getConfig, timeZone } from './utils.js';
+import { getConfig, myfn } from './utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
@@ -64,37 +62,6 @@ const defaultConfig = {
 	auditPath: path.join(os.homedir(), 'etc', `${appName}-audit.json`),
 	dbPath: path.join(os.homedir(), 'etc', `sukebei-parser.sqlite`)
 };
-
-const fileTransport = new transports.DailyRotateFile({
-	level: 'info',
-	filename: defaultConfig.logPath,
-	auditFile: defaultConfig.auditPath,
-	symlinkName: defaultConfig.logSymlinkPath,
-	createSymlink: true,
-	zippedArchive: true,
-	maxSize: '50m',
-	maxFiles: '7d'
-});
-
-const consoleTransport = new transports.Console({});
-const logger = createLogger({
-	transports: [
-		fileTransport,
-		consoleTransport,
-	],
-	format: format.combine(
-		format.label({ label: appName }),
-		format.colorize(),
-		format.prettyPrint(),
-		format.printf((info) => {
-			if (typeof (info.message) === 'string') {
-				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level} ${info.message}`;
-			} else {
-				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level}\n${JSON.stringify(info.message, null, 2)}`;
-			}
-		})
-	)
-});
 
 const getUserUidGid = (username: string) => {
 	const ret = {
