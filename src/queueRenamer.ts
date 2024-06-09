@@ -109,28 +109,26 @@ const getUserUidGid = (username: string) => {
 	} catch (e) { }
 	return ret;
 };
-(async () => {
-	const config = await getConfig(cli.flags['config'] || '', defaultConfig);
-	const userInfo = getUserUidGid(config['username'] || '');
-	const fullScanDir = path.resolve(config['scanDir'] || '');
-	const fullTargetDir = path.resolve(config['targetDir'] || '');
-	if ((fs.existsSync(fullScanDir) && fs.lstatSync(fullScanDir).isDirectory()) == false) return;
-	if ((fs.existsSync(fullTargetDir) && fs.lstatSync(fullTargetDir).isDirectory()) == false) return;
-	const files = fs.readdirSync(fullScanDir)
-		.map(x => path.join(fullScanDir, x))
-		.filter(x => fs.lstatSync(x).isFile());
-	for (const file of files) {
-		try {
-			const infoHash = dotTorrent.parse(fs.readFileSync(file)).infoHash.toUpperCase() || '';
-			const output = path.join(fullTargetDir, `${infoHash}.torrent`);
-			fs.chownSync(file, userInfo.uid, userInfo.gid);
-			console.log(`chown to ${userInfo.uid}.${userInfo.gid} for file ${file}`);
-			fs.chmodSync(file, 0o644);
-			console.log(`chmod to file ${file}`);
-			fs.renameSync(file, output);
-			console.log(`move file ${file} from ${file} to ${output} done !`);
-		} catch (e) {
-			console.log(e);
-		}
+const config = await getConfig(cli.flags['config'] || '', defaultConfig);
+const userInfo = getUserUidGid(config['username'] || '');
+const fullScanDir = path.resolve(config['scanDir'] || '');
+const fullTargetDir = path.resolve(config['targetDir'] || '');
+if ((fs.existsSync(fullScanDir) && fs.lstatSync(fullScanDir).isDirectory()) == false) process.exit();
+if ((fs.existsSync(fullTargetDir) && fs.lstatSync(fullTargetDir).isDirectory()) == false) process.exit();
+const files = fs.readdirSync(fullScanDir)
+	.map(x => path.join(fullScanDir, x))
+	.filter(x => fs.lstatSync(x).isFile());
+for (const file of files) {
+	try {
+		const infoHash = dotTorrent.parse(fs.readFileSync(file)).infoHash.toUpperCase() || '';
+		const output = path.join(fullTargetDir, `${infoHash}.torrent`);
+		fs.chownSync(file, userInfo.uid, userInfo.gid);
+		console.log(`chown to ${userInfo.uid}.${userInfo.gid} for file \n\t${file}`);
+		fs.chmodSync(file, 0o644);
+		console.log(`chmod to file \n\t${file}`);
+		fs.renameSync(file, output);
+		console.log(`move file \n\t${file} \n\tfrom ${file} \n\tto ${output} done !`);
+	} catch (e) {
+		console.log(e);
 	}
-})();
+}
