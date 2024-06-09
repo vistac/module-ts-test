@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
 import { Feed } from "./entities.js";
-import { escapeRegexString, getConfig, timeZone } from "./utils.js";
+import { escapeRegexString, getConfig, getLogFormat, logger, timeZone } from "./utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
@@ -75,38 +75,7 @@ const defaultConfig = {
 const includeKeywords: string[] = ['fc2'];
 const excludeKeywords: string[] = ['720p'];
 
-
-const fileTransport = new transports.DailyRotateFile({
-	level: 'info',
-	filename: defaultConfig.logPath,
-	auditFile: defaultConfig.auditPath,
-	symlinkName: defaultConfig.logSymlinkPath,
-	createSymlink: true,
-	zippedArchive: true,
-	maxSize: '50m',
-	maxFiles: '7d'
-});
-
-const consoleTransport = new transports.Console({});
-const logger = createLogger({
-	transports: [
-		fileTransport,
-		consoleTransport,
-	],
-	format: format.combine(
-		format.label({ label: appName }),
-		format.colorize(),
-		format.prettyPrint(),
-		format.printf((info) => {
-			if (typeof (info.message) === 'string') {
-				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level} ${info.message}`;
-			} else {
-				return `[${moment().tz(timeZone).format()}] [${info.label}] ${info.level}\n${JSON.stringify(info.message, null, 2)}`;
-			}
-		})
-	)
-});
-
+logger.format = getLogFormat('Sukebei-Parser');
 
 const AppDataSource = new DataSource({
 	type: 'sqlite',
@@ -118,15 +87,13 @@ const AppDataSource = new DataSource({
 const config = await getConfig(cli.flags['config'] || '', defaultConfig);
 AppDataSource.setOptions({ database: config['dbPath'] });
 
+logger.info('start parser');
 await AppDataSource.initialize()
 	.then(() => {
 		logger.info('init db done!');
 	})
 	.catch((error) => { logger.info({ message: 'init db failed', error: error }); return; });
 const feedsRepository = AppDataSource.getRepository(Feed);
-
-fileTransport.options.filename = config['logPath'];
-fileTransport.options.auditFile = config['auditPath'];
 
 const includeRegExp = new RegExp(
 	[
@@ -165,8 +132,8 @@ items = items
 		const tmp = x.contentSnippet.split('|').map(x => x.trim());
 		const res = {
 			link: x.link,
-			downloadId: tmp[0] || '',
-			title: x.title || '',
+			downloadId: tmp[0] ?? '',
+			title: x.title ?? '',
 			hash: tmp[4 + ((x.title.match(/\|/g) || []).length) || 0],
 			found: includeRegExp.test(tmp[1]) && !excludeRegExp.test(tmp[1]),
 			include: includeRegExp.test(tmp[1]),
@@ -188,3 +155,6 @@ for (const item of items) {
 		});
 }
 if (cli.flags['showItems'] === true) console.log(items);
+
+logger.info('end parser');
+logger.info('');
