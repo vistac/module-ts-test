@@ -1,8 +1,8 @@
 export class RenameRules {
 	static renameByRule = (srcString: string, policy: string[]) => {
 		let result = srcString;
-		if (eval(`typeof ${policy[2]} === 'function'`)) {
-			result = eval(`${policy[2]}('${srcString}', '${policy[0]}', '${policy[1]}')`);
+		if (eval(`typeof RenameRules.${policy[2]} === 'function'`)) {
+			result = eval(`RenameRules.${policy[2]}('${srcString}', '${policy[0]}', '${policy[1]}')`);
 		}
 		return result;
 	};
