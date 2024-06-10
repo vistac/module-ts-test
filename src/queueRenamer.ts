@@ -7,7 +7,7 @@ import os from 'os';
 import path from "path";
 import { fileURLToPath } from 'url';
 import "winston-daily-rotate-file";
-import { getConfig, myfn } from './utils.js';
+import { getConfig } from './utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const appName = path.parse(__filename)['name'] || 'App';
