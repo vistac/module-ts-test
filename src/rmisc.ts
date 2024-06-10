@@ -217,15 +217,15 @@ const regexps: { [key: string]: RegExp; } = {};
 		}
 		logger.info('');
 	}
-	//   if (options['dryrun'] == false) {
-	//     dirs.reverse()
-	//       .map(x => {
-	//         if (fs.readdirSync(x).length == 0) {
-	//           console.log(`delete empty dir => `, x);
-	//           fs.rmdirSync(x);
-	//         }
-	//       });
-	//   }
+	if (dryrun == false) {
+		dirs.reverse()
+			.map(x => {
+				if (fs.readdirSync(x).length == 0) {
+					logger.info(`delete empty dir => `, x);
+					fs.rmdirSync(x);
+				}
+			});
+	}
 
 	if (options['left'] == true) console.dir({ left: left, size: left.length, scanDir: scanDir, dryrun: dryrun }, { maxArrayLength: null });
 	if (options['showConfig']) console.log(config);
