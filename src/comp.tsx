@@ -1,7 +1,7 @@
 import { Text } from 'ink';
-import { getLogFormat, nullishCoalescing, randomRange, timeZone, logger } from './utils.js';
+import { getLogFormat, nullishCoalescing, randomRange, timeZone, logger, humanSize } from './utils.js';
 import { randomInt } from 'crypto';
-
+import { statfsSync } from 'fs';
 const Counter = () => (
 	<>
 		<Text>Example</Text>
@@ -20,4 +20,9 @@ console.log(logger);
 	for (const i of Array(9).keys()) {
 		// logger.info(`${i} => ${aa}`);
 	}
+	const space = statfsSync('//bthome//downloads');
+	const total = space.bsize * space.blocks;
+	const free = space.bsize * space.bfree;
+	console.log(space);
+	console.log(`total: ${humanSize(total)}, free: ${humanSize(free)}`);
 })();
