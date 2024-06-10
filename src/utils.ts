@@ -1,7 +1,7 @@
 import fs, { existsSync, lstatSync, readFileSync, readdirSync } from 'fs';
 import JSON5 from 'json5';
 import moment from "moment-timezone";
-import { DownloaderHelperOptions } from 'node-downloader-helper';
+import type { DownloaderHelperOptions } from 'node-downloader-helper';
 import os from 'os';
 import path from "path";
 import winston, { createLogger, transports } from 'winston';
@@ -18,7 +18,7 @@ export const regexpEscape = (origString = '') => {
 export const escapeRegexString = (s: string) => s.replace(/./g, a => "[]".includes(a) ? "\\" + a : a);
 export const randomRange = (max: number, min: number = 0) => { return Math.floor(Math.random() * (max - min) + min); };
 export const delayRandomInRange = (max: number, min: number = 0) => {
-	let waitSeconds = randomRange(max, min);
+	const waitSeconds = randomRange(max, min);
 	return new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
 };
 
@@ -37,7 +37,7 @@ export const ansiLen = (str) => {
 };
 
 export const filenameIncrement = (filename: string) => {
-	let info = path.parse(filename);
+	const info = path.parse(filename);
 	let start = 1;
 	while (fs.existsSync(filename)) {
 		filename = path.join(info.dir, `${info.name}(${start})${info.ext}`);
@@ -66,7 +66,7 @@ export const contains = (array, item) => {
 };
 
 export const normalize = (array: any[]): any[] => {
-	let result: any[] = [];
+	const result: any[] = [];
 	for (let i = 0; i < array.length; ++i) {
 		if (!contains(result, array[i])) {
 			result.push(array[i]);
@@ -98,7 +98,7 @@ export const genRegExp = (words: string[]) => {
 };
 export const listFilesRecursive = (dirName: string): string[] => {
 	let result: any[] = [];
-	let files: any[] = readdirSync(dirName)
+	const files: any[] = readdirSync(dirName)
 		.map(x => path.resolve(path.join(dirName, x)));
 
 	// if (files.length == 0) {
@@ -106,8 +106,8 @@ export const listFilesRecursive = (dirName: string): string[] => {
 	// 	fs.rmdirSync(dirName);
 	// }
 
-	for (let file of files) {
-		let stat = lstatSync(file);
+	for (const file of files) {
+		const stat = lstatSync(file);
 		if (stat.isDirectory()) {
 			result = [...result, file, ...listFilesRecursive(file)];
 		} else if (stat.isFile()) {
