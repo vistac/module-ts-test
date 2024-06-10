@@ -85,14 +85,6 @@ const options = meow(
 }).flags;
 logger.format = getLogFormat('rmisc');
 
-const meetsDeleteKeywords = (filename: string, challenge: RegExp) => {
-	const result = challenge.test(filename);
-	return result;
-};
-const meetsFitRenameKeywords = (filename: string, challenge: string[]) => { };
-const meetsFitKeepKeywords = (filename: string, challenge: string[]) => { };
-
-
 const dryrun = options['dryrun'];
 const nullRegexp = new RegExp(/\`/);
 const regexps: { [key: string]: RegExp; } = {};
@@ -136,9 +128,6 @@ const regexps: { [key: string]: RegExp; } = {};
 		let dest = file;
 		let destBase = info.base;
 		let action: Action = 'none';
-		// let deleteFile: boolean = false;
-		let renameFile: boolean = false;
-		const renameByDirName: boolean = false;
 
 		const meetsRenamePolicies: any[] =
 			renamePolicies
@@ -146,7 +135,6 @@ const regexps: { [key: string]: RegExp; } = {};
 					if ((new RegExp(x[0])).test(info.base) == false) return false;
 					return true;
 				});
-		const meetsAllDeletePolicies = false;
 		const meetsDeleteKeywords = challengeWord(info.base, regexps.deleteKeywords);
 		const meetsRenameByDirnameKeywords = challengeWord(parentDirName, regexps.renameByDirname);
 
@@ -159,8 +147,6 @@ const regexps: { [key: string]: RegExp; } = {};
 		if (meetsRenameByDirnameKeywords) {
 			destBase = `${parentDirName}${info.ext}`;
 		}
-
-		if (meetsRenamePolicies.length > 0) renameFile = true;
 
 		for (const policy of renamePolicies) {
 			if ((new RegExp(policy[0])).test(destBase)) {
