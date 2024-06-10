@@ -162,11 +162,12 @@ const regexps: { [key: string]: RegExp; } = {};
 
 		if (meetsRenamePolicies.length > 0) renameFile = true;
 
-		renamePolicies
-			.map(x => {
-				if ((new RegExp(x[0])).test(destBase))
-					destBase = RenameRules.renameByRule(destBase, x);
-			});
+		for (const policy of renamePolicies) {
+			if ((new RegExp(policy[0])).test(destBase)) {
+				destBase = RenameRules.renameByRule(destBase, policy);
+				break;
+			}
+		}
 
 		if (file == path.resolve(path.join(scanDir, destBase))) {
 			continue;
