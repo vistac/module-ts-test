@@ -96,8 +96,6 @@ const meetsFitKeepKeywords = (filename: string, challenge: string[]) => { };
 const dryrun = options['dryrun'];
 const nullRegexp = new RegExp(/\`/);
 const regexps: { [key: string]: RegExp; } = {};
-// regexpDeleteKeywords: new RegExp(/\`/),
-// regexpRenameByDirname: new RegExp(/\'/)
 
 (async () => {
 	const config = await getConfig(options['config'] || '', defaultConfig);
@@ -176,14 +174,6 @@ const regexps: { [key: string]: RegExp; } = {};
 
 		dest = filenameIncrement(path.join(scanDir, destBase));
 
-		// if (meetsDeleteKeywords == true) {
-		// 	meetsAllDeletePolicies = true;
-		// }
-
-		//     if (dryrun == false && (meetsAllDeletePolicies == true)) {
-		//       deleteFile = true;
-		//     }
-
 		const msg = {
 			seq: i,
 			meetsRenamePolicies: meetsRenamePolicies,
@@ -194,25 +184,26 @@ const regexps: { [key: string]: RegExp; } = {};
 			destBase: destBase,
 			ext: info.ext,
 			parentDirName: parentDirName,
-			action: action
+			action: action,
 		};
-		//     // if (meetsRenameByDirnameKeywords) console.log(msg);
-		//     if (options['show-delete-keys'] == true) msg = { ...{ deleteRegexp: regexps.regexpDeleteKeywords }, ...msg, };
 		if (options['trace'] == true) console.log(msg);
 
 		//compare delete keywords
-		// if (options['dryrun'] == false) {
 		switch (action) {
 			case "delete": {
 				// logger.info(`delete file: ${file}`);
-				(options['dryrun'] == false) ? console.log('delete file...', file) : doNothing();
-				// fs.rmSync(file);
+				if (options['verbose']) console.log('delete file...', file);
+				if (dryrun == false) {
+					fs.rmSync(file);
+				}
 				continue;
 			}
 			case 'move': {
 				// logger.info(`move file \n  from ==> ${file} \n  to ==> ${dest}`);
-				(options['dryrun'] === false) ? console.log(`move file... \n  from: ${file}\n  to:${dest}`) : doNothing();
-				// fs.renameSync(file, dest);
+				if (options['verbose']) console.log(`move file... \n  from: ${file}\n  to:${dest}`);
+				if (dryrun === false) {
+					fs.renameSync(file, dest);
+				}
 				continue;
 			}
 			case 'none': {
