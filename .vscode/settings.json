@@ -14,8 +14,10 @@
   "todo-tree.tree.showBadges": true,
   "cSpell.words": [
     "barsize",
+    "bfree",
     "braden",
     "Bradens",
+    "bsize",
     "bthome",
     "cliapps",
     "cuda",
@@ -52,6 +54,7 @@
     "rmisctest",
     "rtcheck",
     "Souce",
+    "statfs",
     "Sukebei",
     "Timecode",
     "typeorm",
