@@ -138,7 +138,7 @@ const regexps: { [key: string]: RegExp; } = {};
 		let dest = file;
 		let destBase = info.base;
 		let action: Action = 'none';
-		let deleteFile: boolean = false;
+		// let deleteFile: boolean = false;
 		let renameFile: boolean = false;
 		const renameByDirName: boolean = false;
 
@@ -166,7 +166,8 @@ const regexps: { [key: string]: RegExp; } = {};
 
 		renamePolicies
 			.map(x => {
-				destBase = RenameRules.renameByRule(destBase, x);
+				if ((new RegExp(x[0])).test(destBase))
+					destBase = RenameRules.renameByRule(destBase, x);
 			});
 
 		if (file == path.resolve(path.join(scanDir, destBase))) {
@@ -183,7 +184,7 @@ const regexps: { [key: string]: RegExp; } = {};
 		//       deleteFile = true;
 		//     }
 
-		let msg = {
+		const msg = {
 			seq: i,
 			meetsRenamePolicies: meetsRenamePolicies,
 			deleteByKeyword: meetsDeleteKeywords,
@@ -210,7 +211,7 @@ const regexps: { [key: string]: RegExp; } = {};
 			}
 			case 'move': {
 				// logger.info(`move file \n  from ==> ${file} \n  to ==> ${dest}`);
-				(options['dryrun'] === false) ? console.log('move file...', dest) : doNothing();
+				(options['dryrun'] === false) ? console.log(`move file... \n  from: ${file}\n  to:${dest}`) : doNothing();
 				// fs.renameSync(file, dest);
 				continue;
 			}
