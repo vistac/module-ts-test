@@ -192,16 +192,16 @@ const regexps: { [key: string]: RegExp; } = {};
 		//compare delete keywords
 		switch (action) {
 			case "delete": {
-				// logger.info(`delete file: ${file}`);
-				if (options['verbose']) console.log('delete file...', file);
+				logger.info(`delete file: ${file}`);
+				// if (options['verbose']) console.log('delete file...', file);
 				if (dryrun == false) {
 					fs.rmSync(file);
 				}
 				continue;
 			}
 			case 'move': {
-				// logger.info(`move file \n  from ==> ${file} \n  to ==> ${dest}`);
-				if (options['verbose']) console.log(`move file... \n  from: ${file}\n  to:${dest}`);
+				logger.info(`move file \n  from ==> ${file} \n  to ==> ${dest}`);
+				// if (options['verbose']) console.log(`move file... \n  from: ${file}\n  to:${dest}`);
 				if (dryrun === false) {
 					fs.renameSync(file, dest);
 				}
