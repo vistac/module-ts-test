@@ -25,4 +25,7 @@ console.log(logger);
 	const free = space.bsize * space.bfree;
 	console.log(space);
 	console.log(`total: ${humanSize(total)}, free: ${humanSize(free)}`);
+	const str = 'HUNTC-141.jpg';
+	const reg = (new RegExp(/(^[a-zA-Z]{5})-([0-9]+).jpg/, 'i'));
+	console.log(reg.test(str));
 })();
