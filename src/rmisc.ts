@@ -37,6 +37,7 @@ const options = meow(
 	--max -m max process count.
 	--show-config -s show config.
 	--show-delete-keys show delete keywords.
+	--show-policies show policies, only dir or delete or rename.
 	--trace -t trace action.
 	--verbose -v verbose.
 	`, {
@@ -68,7 +69,6 @@ const options = meow(
 		showPolicies: {
 			shortFlag: 'p',
 			type: 'string',
-			default: 'delete'
 		},
 		showConfig: {
 			shortFlag: 's',
