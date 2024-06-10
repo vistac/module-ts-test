@@ -35,8 +35,8 @@ const options = meow(
 	--left -l show left.
 	--help -h show help.
 	--max -m max process count.
-	--showConfig -s show config.
-	--showDeleteKeys show delete keywords.
+	--show-config -s show config.
+	--show-delete-keys show delete keywords.
 	--trace -t trace action.
 	--verbose -v verbose.
 	`, {
@@ -65,6 +65,11 @@ const options = meow(
 			type: 'number',
 			default: 9999999
 		},
+		showPolicies: {
+			shortFlag: 'p',
+			type: 'string',
+			default: 'delete'
+		},
 		showConfig: {
 			shortFlag: 's',
 			type: 'boolean',
@@ -92,6 +97,7 @@ const regexps: { [key: string]: RegExp; } = {};
 (async () => {
 	const config = await getConfig(options['config'] || '', defaultConfig);
 	const scanDir = path.resolve(config['scanDir']);
+	if (options['showConfig']) { console.log(config); return; };
 	if (fs.existsSync(scanDir) == false) return;
 	regexps.deleteKeywords = genEscapedRegExp([...config['deleteKeywords'] || []]) ?? nullRegexp;
 	regexps.renameByDirname = genEscapedRegExp([...config['renameByDirnameKeywords']]) ?? nullRegexp;
@@ -108,6 +114,25 @@ const regexps: { [key: string]: RegExp; } = {};
 			return true;
 		});
 
+	if (options['showPolicies']) {
+		switch (options['showPolicies']) {
+			case 'delete': {
+				console.log(regexps.deleteKeywords);
+				break;
+			}
+			case 'rename': {
+				console.log(renamePolicies);
+				break;
+			}
+			case 'dir': {
+				console.log(regexps.renameByDirname);
+				break;
+			}
+			default:
+				break;
+		}
+		return;
+	}
 	const files = listFilesRecursive(scanDir);
 	const dirs: string[] = [];
 	const left: string[] = [];
@@ -214,5 +239,4 @@ const regexps: { [key: string]: RegExp; } = {};
 	}
 
 	if (options['left'] == true) console.dir({ left: left, size: left.length, scanDir: scanDir, dryrun: dryrun }, { maxArrayLength: null });
-	if (options['showConfig']) console.log(config);
 })();
