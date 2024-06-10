@@ -1,19 +1,42 @@
 {
   "compilerOptions": {
+    /* Base Options: */
     "target": "ES2020",
-    "sourceMap": true,
+    "verbatimModuleSyntax": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "rootDir": "src",
+    "outDir": "dist",
+
+    /* Strictness */
+    "noUncheckedIndexedAccess": true,
+
+    /* If transpiling with typescript like tsx or ts-node */
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "sourceMap": true,
+
+    /* If not transpiling with typescript lie bun or deno*/
+    // "module": "ESNext",
+    // "moduleResolution": "Bundler",
+    // "sourceMap": true,
+
+    /* If runs in DOM */
+    // "lib": ["ES2023", "DOM", "DOM.Iterable"],
+
+    /* if doesn't run in DOM */
+    "lib": ["ES2023"],
+
+    /* other */
+    "declaration": true,
+    "composite": true,
+    "declarationMap": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": false,
-    "skipLibCheck": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "noUncheckedIndexedAccess": true,
-    "jsx": "react-jsx",
-    "rootDir": "src",
-    "outDir": "./dist"
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*"]
-
 }
